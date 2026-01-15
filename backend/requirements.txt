@@ -5,3 +5,4 @@ google-generativeai
 firebase-admin
 requests
 python-dotenv
+dspy-ai
