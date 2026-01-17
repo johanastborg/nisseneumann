@@ -51,6 +51,8 @@ function Node({ position, color, label, scale = 1, onClick }: NodeProps) {
                     anchorY="middle"
                     outlineWidth={0.02}
                     outlineColor="black"
+                    maxWidth={4} // Wrap long text
+                    textAlign="center"
                 >
                     {label}
                 </Text>
@@ -62,33 +64,46 @@ function Node({ position, color, label, scale = 1, onClick }: NodeProps) {
 export function Graph({ data }: { data: GraphData }) {
     // Layout logic: central node = question, orbiting nodes = context
     const nodes = useMemo(() => {
+        console.log("Graph received data:", data);
         const items = [];
 
-        // Central Node (Question)
+        // Central Node (Answer)
         items.push({
             id: 'root',
             position: [0, 0, 0] as [number, number, number],
             color: '#ff0055',
-            label: 'Question',
+            label: data.answer || 'Waiting for question...', // Show the answer text
             scale: 1.5
         });
 
         const radius = 6;
         let angle = 0;
 
-        // Mocking structure if real data is complex string
-        // In reality, we'd parse data.context.kg and data.context.papers
-        const contextItems = [
-            { type: 'KG', label: 'Entity 1', color: '#00ccff' },
-            { type: 'KG', label: 'Entity 2', color: '#00ccff' },
-            { type: 'Paper', label: 'Paper A', color: '#ffcc00' },
-            { type: 'Paper', label: 'Paper B', color: '#ffcc00' },
-            { type: 'Answer', label: 'Answer', color: '#00ff44' }
-        ];
+        // Parse real KG Data
+        // The Google KG API returns { itemListElement: [...] }
+        const kgItems = data.context.kg?.itemListElement || [];
 
-        const step = (Math.PI * 2) / contextItems.length;
+        const contextItems = kgItems.map((item: any) => ({
+            type: 'KG',
+            label: item.result.name,
+            color: '#00ccff',
+            description: item.result.description
+        }));
 
-        contextItems.forEach((item, i) => {
+        // Add "Papers" (CreativeWorks from KG)
+        const paperItems = data.context.papers?.itemListElement || [];
+        paperItems.forEach((item: any) => {
+            contextItems.push({
+                type: 'Paper',
+                label: item.result.name,
+                color: '#ffcc00', // Gold for papers
+                description: item.result.description
+            });
+        });
+
+        const step = (Math.PI * 2) / Math.max(1, contextItems.length);
+
+        contextItems.forEach((item: any, i: number) => {
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
             items.push({
